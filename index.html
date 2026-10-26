@@ -1,0 +1,908 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1c5cab">
+<title>陸上記録ノート</title>
+<style>
+  :root {
+    color-scheme: light;
+    --bg: #f3f4f1;
+    --card: #fcfcfb;
+    --ink: #0b0b0b;
+    --sub: #52514e;
+    --muted: #898781;
+    --line: #e1e0d9;
+    --axis: #c3c2b7;
+    --brand: #1c5cab;
+    --brand-ink: #ffffff;
+    --brand-soft: #e3eefb;
+    --brand-text: #1c5cab;
+    --good: #006300;
+    --good-soft: #def3de;
+    --warn-soft: #fff1cc;
+    --bad: #c92a2a;
+    --s1: #2a78d6;   /* 大会・記録会（公認） */
+    --s2: #eb6834;   /* 追い風参考 */
+    --s3: #1baf7a;   /* 練習 */
+    --other: #c3c2b7;/* そのほかの試技 */
+    --radius: 14px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --bg: #0d0d0d; --card: #1a1a19; --ink: #f0efec; --sub: #c3c2b7; --muted: #898781;
+      --line: #2c2c2a; --axis: #4a4a46; --brand: #184f95; --brand-soft: #1b2a3d; --brand-text: #6da7ec;
+      --good: #0ca30c; --good-soft: #15301a; --warn-soft: #3a3016; --bad: #e66767;
+      --s1: #3987e5; --s2: #d95926; --s3: #199e70; --other: #4a4a46;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --bg: #0d0d0d; --card: #1a1a19; --ink: #f0efec; --sub: #c3c2b7; --muted: #898781;
+    --line: #2c2c2a; --axis: #4a4a46; --brand: #184f95; --brand-soft: #1b2a3d; --brand-text: #6da7ec;
+    --good: #0ca30c; --good-soft: #15301a; --warn-soft: #3a3016; --bad: #e66767;
+    --s1: #3987e5; --s2: #d95926; --s3: #199e70; --other: #4a4a46;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--ink);
+    font-family: system-ui, -apple-system, "Hiragino Sans", "Noto Sans JP", "Yu Gothic UI", Meiryo, sans-serif;
+    font-size: 16px; line-height: 1.55; -webkit-text-size-adjust: 100%; }
+  button, input, select, textarea { font: inherit; color: inherit; }
+  .app { max-width: 640px; margin: 0 auto; padding: 0 16px calc(84px + env(safe-area-inset-bottom)); }
+
+  header.top { position: sticky; top: 0; z-index: 5; background: var(--brand); color: var(--brand-ink);
+    margin: 0 -16px; padding: 10px 16px; display: flex; align-items: center; gap: 8px; }
+  header.top h1 { font-size: 17px; margin: 0; flex: 1; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  header.top button { background: rgba(255,255,255,.16); border: 0; color: #fff; border-radius: 8px; padding: 4px 10px; font-size: 13px; }
+  .mock { font-size: 11px; background: #ffd43b; color: #5c3d00; border-radius: 6px; padding: 1px 6px; font-weight: 800; }
+  .bar { margin: 10px 0 0; padding: 8px 12px; border-radius: 10px; background: var(--warn-soft); font-size: 13px; }
+
+  .card { background: var(--card); border-radius: var(--radius); padding: 14px 16px; margin-top: 12px;
+    box-shadow: 0 0 0 1px rgba(11,11,11,.06); }
+  h2 { font-size: 15px; margin: 18px 0 0; color: var(--sub); font-weight: 700; }
+  .muted { color: var(--muted); font-size: 13px; }
+  .num { font-variant-numeric: tabular-nums; }
+
+  /* 種目の切り替え・区分のボタン */
+  .seg { display: flex; background: var(--line); border-radius: 10px; padding: 3px; gap: 3px; }
+  .seg button { flex: 1; border: 0; background: transparent; border-radius: 8px; padding: 7px 4px; font-weight: 700; color: var(--sub); }
+  .seg button.on { background: var(--card); color: var(--ink); box-shadow: 0 1px 2px rgba(0,0,0,.12); }
+  .evswitch { margin-top: 12px; }
+
+  /* ホーム */
+  .hero { text-align: center; padding: 18px 16px; }
+  .hero .label { font-size: 13px; color: var(--sub); font-weight: 700; }
+  .hero .big { font-size: 52px; font-weight: 800; line-height: 1.1; letter-spacing: -.5px; margin: 4px 0; }
+  .hero .big small { font-size: 22px; font-weight: 700; margin-left: 2px; }
+  .hero .where { font-size: 13px; color: var(--sub); }
+  .tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
+  .tile { background: var(--card); border-radius: 12px; padding: 10px 12px; box-shadow: 0 0 0 1px rgba(11,11,11,.06); }
+  .tile .label { font-size: 12px; color: var(--sub); }
+  .tile .val { font-size: 22px; font-weight: 800; }
+  .tile .val small { font-size: 13px; font-weight: 700; margin-left: 1px; }
+  .tile .note { font-size: 12px; color: var(--muted); }
+  .up { color: var(--good); font-weight: 700; }
+
+  .goal { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-top: 1px solid var(--line); }
+  .goal:first-of-type { border-top: 0; }
+  .goal .name { flex: 1; min-width: 0; }
+  .goal .name b { display: block; }
+  .goal .rest { text-align: right; font-weight: 800; white-space: nowrap; }
+  .goal .rest small { display: block; font-size: 11px; color: var(--muted); font-weight: 400; }
+  .goal.done .rest { color: var(--good); }
+  .gbar { height: 6px; background: var(--line); border-radius: 3px; margin-top: 4px; overflow: hidden; }
+  .gbar i { display: block; height: 100%; background: var(--s1); border-radius: 3px; }
+  .goal.done .gbar i { background: var(--good); }
+  .linkbtn { border: 0; background: none; color: var(--s1); padding: 4px 0; font-size: 14px; font-weight: 700; }
+
+  /* 出場カード（一覧・最近の記録） */
+  .entry { padding: 12px 0; border-top: 1px solid var(--line); }
+  .entry:first-child { border-top: 0; padding-top: 2px; }
+  .entry .head { display: flex; align-items: baseline; gap: 8px; }
+  .entry .date { font-size: 13px; color: var(--sub); white-space: nowrap; }
+  .entry .meet { flex: 1; font-weight: 700; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .entry .best { font-weight: 800; font-size: 18px; white-space: nowrap; }
+  .badge { display: inline-block; font-size: 11px; font-weight: 700; border-radius: 6px; padding: 0 6px; background: var(--line); color: var(--sub); vertical-align: 2px; }
+  .badge.pb { background: #ffd43b; color: #5c3d00; }
+  .chips { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+  .chip { font-size: 13px; border-radius: 8px; padding: 2px 8px; background: var(--bg); white-space: nowrap; }
+  .chip.top { background: var(--brand-soft); font-weight: 700; }
+  .chip.foul { color: var(--bad); }
+  .chip small { color: var(--muted); margin-left: 3px; }
+  .entry .memo { font-size: 13px; color: var(--sub); margin-top: 6px; white-space: pre-wrap; }
+  .entry .foot { display: flex; justify-content: space-between; align-items: center; }
+
+  /* 入力 */
+  .field { margin-top: 12px; }
+  .field > label { display: block; font-size: 13px; font-weight: 700; color: var(--sub); margin-bottom: 4px; }
+  .in { width: 100%; border: 1px solid var(--axis); border-radius: 10px; padding: 9px 10px; background: var(--card); min-height: 44px; }
+  .in:focus { outline: 2px solid var(--s1); outline-offset: -1px; border-color: transparent; }
+  textarea.in { min-height: 70px; resize: vertical; }
+  .att { display: grid; grid-template-columns: 52px 1fr auto 104px; gap: 6px; align-items: center; padding: 6px 0; border-top: 1px solid var(--line); }
+  .att.run { grid-template-columns: 92px 1fr 104px; }
+  .att .no { font-weight: 700; font-size: 14px; }
+  .att .in { padding: 8px; text-align: center; font-size: 18px; font-weight: 700; }
+  .att .in.round { font-size: 14px; font-weight: 700; padding: 8px 4px; text-align: left; }
+  .att .in:disabled { opacity: .35; }
+  .att .in::placeholder, .wind input::placeholder { color: var(--axis); font-weight: 400; }
+  .rbtn { display: flex; gap: 4px; }
+  .rbtn button { border: 1px solid var(--axis); background: var(--card); border-radius: 8px; min-width: 40px; min-height: 44px; padding: 0 6px; font-size: 13px; font-weight: 700; }
+  .rbtn button.on { background: var(--bad); border-color: var(--bad); color: #fff; }
+  .rbtn button.on.pass { background: var(--sub); border-color: var(--sub); }
+  .wind { display: flex; align-items: center; border: 1px solid var(--axis); border-radius: 10px; overflow: hidden; background: var(--card); min-height: 44px; }
+  .wind button { border: 0; background: var(--bg); width: 34px; align-self: stretch; font-weight: 800; font-size: 16px; }
+  .wind input { border: 0; width: 100%; min-width: 0; padding: 8px 4px; text-align: center; background: transparent; font-size: 15px; }
+  .wind input:focus { outline: none; }
+  .atthead { display: grid; grid-template-columns: 52px 1fr auto 104px; gap: 6px; font-size: 11px; color: var(--muted); margin-top: 8px; }
+  .atthead.run { grid-template-columns: 92px 1fr 104px; }
+  .rowbtns { display: flex; gap: 8px; margin-top: 8px; }
+  .btn { border: 0; border-radius: 12px; padding: 12px 16px; font-weight: 800; min-height: 48px; }
+  .btn.main { background: var(--brand); color: #fff; width: 100%; font-size: 17px; margin-top: 16px; }
+  .btn.sub { background: var(--line); color: var(--ink); }
+  .btn.small { padding: 6px 12px; min-height: 36px; font-size: 14px; }
+  .btn.danger { background: transparent; color: var(--bad); border: 1px solid var(--bad); }
+  .btn:disabled { opacity: .5; }
+  .err { color: var(--bad); font-size: 14px; margin-top: 10px; font-weight: 700; }
+  .help { font-size: 12px; color: var(--muted); margin-top: 6px; }
+
+  /* グラフ */
+  .chartwrap { position: relative; margin-top: 6px; touch-action: pan-y; }
+  .chartwrap svg { display: block; width: 100%; }
+  .chartwrap text { font-size: 11px; fill: var(--muted); font-variant-numeric: tabular-nums; }
+  .chartwrap .glabel { fill: var(--sub); font-weight: 700; }
+  .tip { position: absolute; pointer-events: none; background: var(--card); color: var(--ink); border-radius: 10px; padding: 6px 10px; font-size: 13px;
+    box-shadow: 0 0 0 1px rgba(11,11,11,.1), 0 4px 14px rgba(0,0,0,.14); white-space: nowrap; z-index: 2; }
+  .tip b { font-size: 16px; }
+  .legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12px; color: var(--sub); margin-top: 8px; }
+  .legend span { display: inline-flex; align-items: center; gap: 5px; }
+  .key { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+  .key.line { width: 16px; height: 2px; border-radius: 1px; }
+  .rangesel { margin-top: 10px; }
+
+  /* 下のタブ */
+  nav.tabs { position: fixed; left: 0; right: 0; bottom: 0; z-index: 6; background: var(--card); border-top: 1px solid var(--line);
+    display: flex; justify-content: center; padding-bottom: env(safe-area-inset-bottom); }
+  nav.tabs .inner { display: flex; width: 100%; max-width: 640px; }
+  nav.tabs button { flex: 1; border: 0; background: none; padding: 6px 0 8px; font-size: 11px; color: var(--muted); display: flex; flex-direction: column; align-items: center; gap: 2px; }
+  nav.tabs button svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  nav.tabs button.on { color: var(--brand-text); font-weight: 700; }
+  nav.tabs button.add.on, nav.tabs button.add { color: var(--brand-text); }
+
+  .toast { position: fixed; left: 50%; bottom: calc(80px + env(safe-area-inset-bottom)); transform: translateX(-50%); background: var(--ink); color: var(--card);
+    padding: 10px 18px; border-radius: 12px; font-weight: 700; z-index: 9; width: max-content; max-width: 90vw; text-align: center; }
+  .toast.pb { background: #ffd43b; color: #5c3d00; font-size: 18px; }
+  .loading { text-align: center; padding: 60px 0; color: var(--muted); }
+  .empty { text-align: center; padding: 26px 8px; color: var(--muted); font-size: 14px; }
+  .goalform { display: grid; grid-template-columns: 1fr 96px auto; gap: 6px; margin-top: 10px; }
+  .goalform .in { min-height: 40px; padding: 6px 8px; }
+  @media (max-width: 360px) {
+    .att { grid-template-columns: 44px 1fr auto 92px; }
+    .atthead { grid-template-columns: 44px 1fr auto 92px; }
+    .rbtn button { min-width: 34px; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <h1 id="appTitle">陸上記録ノート</h1>
+    <span class="mock" id="mockBadge" hidden>見本データ</span>
+    <button type="button" onclick="load()">更新</button>
+  </header>
+  <div class="bar" id="staleBar" hidden></div>
+  <main id="view"><div class="loading">読み込み中…</div></main>
+</div>
+<nav class="tabs" id="tabs" hidden><div class="inner"></div></nav>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+/* ---------- 設定 ---------- */
+// ウェブアプリ（GAS）の入口。デプロイ後に書き換える。空なら見本データ（このスマホの中だけ）で動く
+var API_URL = 'https://script.google.com/macros/s/AKfycbw73H9w-SSOkrhwWCuxcNIXmGYRxC9ByBiQFGJCofx4iH6bE_P876BVN9nOUzRlkWIIyA/exec';
+var Q = new URLSearchParams(location.search);
+var MOCK = !API_URL || !/^https?:$/.test(location.protocol) || !!Q.get('mock');
+
+var EVENTS = ['走幅跳', '100m'];
+var KINDS = ['大会', '記録会', '練習'];
+var ROUNDS = ['予選', '準決勝', '決勝', 'タイムレース', '1本目', '2本目', '3本目', '4本目', '5本目', '6本目'];
+var MARK_RANGE = { '走幅跳': [0.5, 9.99], '100m': [9, 30] };
+var WIND_LIMIT = 2.0; // 追い風がこれを超えると「追い風参考」（公認記録にならない）
+var MAX_ATT = 6;
+var KEY = { pass: 'rikujo_pass', event: 'rikujo_event', snap: 'rikujo_snap', range: 'rikujo_range', mock: 'rikujo_mock_db' };
+
+var D = null;            // 取得したデータ {title, entries, goals}
+var TAB = Q.get('tab') || 'home';
+var EV = get(KEY.event) || '走幅跳';
+var RANGE = get(KEY.range) || 'all';
+var F = null;            // 入力中の出場
+var FERR = '';
+var SAVING = false;
+var PASS_MODE = '';      // 'new' | 'wrong' | ''
+var TIP = null;          // グラフでタップした点
+
+function get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+function put(k, v) { try { if (v === null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch (e) { /* 残せなくても動く */ } }
+function esc(s) { return String(s === null || s === undefined ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+
+/* ---------- 記録の見方 ---------- */
+function isJump(ev) { return ev === '走幅跳'; }
+function unit(ev) { return isJump(ev) ? 'm' : '秒'; }
+/** a が b より良い記録か（幅跳びは長いほど、100mは短いほど良い） */
+function better(ev, a, b) { return isJump(ev) ? a > b : a < b; }
+function fmtMark(ev, v) {
+  if (v === null || v === undefined || isNaN(v)) return '';
+  if (isJump(ev)) return v.toFixed(2);
+  return Math.round(v * 100) % 10 === 0 ? v.toFixed(1) : v.toFixed(2); // 手動計時（13.4）はそのまま
+}
+function fmtWind(w) {
+  if (w === null || w === undefined || isNaN(w)) return '';
+  return (w > 0 ? '+' : w < 0 ? '-' : '±') + Math.abs(w).toFixed(1);
+}
+function hasMark(a) { return !a.result && a.mark !== null && !isNaN(a.mark); }
+function aided(a) { return a.wind !== null && a.wind > WIND_LIMIT; }
+/** 公認記録になるか：大会・記録会で、追い風参考でないもの（風が空欄のものは公認として扱う） */
+function legal(e, a) { return e.kind !== '練習' && hasMark(a) && !aided(a); }
+function bestOf(ev, list) {
+  var b = null;
+  list.forEach(function (x) { if (!b || better(ev, x.a.mark, b.a.mark)) b = x; });
+  return b;
+}
+/** 種目の全試技を {e, a} で並べる（条件 fn に合うものだけ） */
+function attemptsOf(ev, fn) {
+  var out = [];
+  (D.entries || []).forEach(function (e) {
+    if (e.event !== ev) return;
+    e.attempts.forEach(function (a) { if (hasMark(a) && (!fn || fn(e, a))) out.push({ e: e, a: a }); });
+  });
+  return out;
+}
+function entriesOf(ev) {
+  return (D.entries || []).filter(function (e) { return e.event === ev; })
+    .sort(function (x, y) { return x.date < y.date ? 1 : x.date > y.date ? -1 : 0; });
+}
+function yearOf(d) { return +String(d).slice(0, 4); }
+function thisYear() { return new Date().getFullYear(); }
+function stats(ev) {
+  var y = thisYear();
+  var s = {
+    pb: bestOf(ev, attemptsOf(ev, legal)),
+    sb: bestOf(ev, attemptsOf(ev, function (e, a) { return legal(e, a) && yearOf(e.date) === y; })),
+    lb: bestOf(ev, attemptsOf(ev, function (e, a) { return legal(e, a) && yearOf(e.date) === y - 1; })),
+    prac: bestOf(ev, attemptsOf(ev, function (e) { return e.kind === '練習'; })),
+    windy: bestOf(ev, attemptsOf(ev, function (e, a) { return e.kind !== '練習' && aided(a); })),
+    count: entriesOf(ev).filter(function (e) { return e.kind !== '練習' && yearOf(e.date) === y; }).length
+  };
+  if (isJump(ev)) { // 今季の大会・記録会のファウル率（パスは数えない）
+    var n = 0, f = 0;
+    entriesOf(ev).forEach(function (e) {
+      if (e.kind === '練習' || yearOf(e.date) !== y) return;
+      e.attempts.forEach(function (a) { if (a.result !== 'パス') { n++; if (a.result === 'F') f++; } });
+    });
+    s.fouls = { n: n, f: f };
+  }
+  return s;
+}
+/** 目標までの残り。幅跳びは cm、100mは秒 */
+function restText(ev, goal, pb) {
+  if (!pb) return '';
+  var d = isJump(ev) ? Math.round((goal - pb) * 100) : Math.round((pb - goal) * 100) / 100;
+  return isJump(ev) ? 'あと ' + d + 'cm' : 'あと ' + d.toFixed(2) + '秒';
+}
+function dateText(d, withYear) {
+  var p = String(d).split('-');
+  return (withYear ? p[0] + '/' : '') + (+p[1]) + '/' + (+p[2]);
+}
+
+/* ---------- データ取得 ---------- */
+function server(fn, args, ok, ng) {
+  if (MOCK) { setTimeout(function () { try { ok(mockServer(fn, args)); } catch (e) { ng(e); } }, 150); return; }
+  fetch(API_URL, { method: 'POST', body: JSON.stringify({ fn: fn, args: args }) })
+    .then(function (r) { return r.json(); })
+    .then(function (d) { if (d && d.error) ng(new Error(d.error)); else ok(d); }, ng);
+}
+// 前回のデータをこのスマホに残しておき、次に開いたときはすぐ表示して、裏で最新に入れ替える
+function load() {
+  var snap = null;
+  if (!D && !MOCK) { try { snap = JSON.parse(get(KEY.snap) || 'null'); } catch (e) { snap = null; } }
+  if (snap && snap.entries) { onData(snap); showStale('前回のデータを表示しています（最新を読み込み中…）'); }
+  server('getData', [get(KEY.pass) || ''], function (d) { showStale(''); onData(d); }, function (e) {
+    if (D) showStale('最新を読み込めませんでした。電波のよいところで「更新」を押してください');
+    else document.getElementById('view').innerHTML = '<div class="card">読み込みに失敗しました。<br><span class="muted">' + esc(e && e.message || e) + '</span></div>';
+  });
+}
+function showStale(msg) {
+  var bar = document.getElementById('staleBar');
+  bar.hidden = !msg;
+  bar.textContent = msg;
+}
+function onData(d) {
+  if (d.needPass) {
+    D = null;
+    PASS_MODE = d.needPass === 'new' ? 'new' : (get(KEY.pass) ? 'wrong' : 'enter');
+    put(KEY.snap, null);
+    renderPass();
+    return;
+  }
+  PASS_MODE = '';
+  D = d;
+  D.entries = D.entries || [];
+  D.goals = D.goals || [];
+  if (!MOCK) put(KEY.snap, JSON.stringify(D));
+  document.getElementById('appTitle').textContent = D.title || '陸上記録ノート';
+  document.title = D.title || '陸上記録ノート';
+  render();
+}
+
+/* ---------- 合言葉 ---------- */
+function renderPass() {
+  document.getElementById('tabs').hidden = true;
+  var head = PASS_MODE === 'new'
+    ? '<b>はじめに合言葉を決めてください</b><div class="help">4文字以上。家族で同じ合言葉を使います。あとからスプレッドシートの「設定」で変えられます</div>'
+    : PASS_MODE === 'wrong' ? '<b>合言葉が変わったか、違っています</b><div class="help">もう一度入れてください</div>'
+    : '<b>合言葉を入れてください</b><div class="help">一度入れると、このスマホでは次から入れなくてよくなります</div>';
+  document.getElementById('view').innerHTML = '<div class="card" style="margin-top:20px">' + head +
+    '<div class="field"><input class="in" id="passIn" type="text" autocomplete="off" autocapitalize="off" placeholder="合言葉"></div>' +
+    '<div class="err" id="passErr"></div>' +
+    '<button class="btn main" id="passBtn" onclick="submitPass()">' + (PASS_MODE === 'new' ? 'この合言葉にする' : '開く') + '</button></div>';
+}
+function submitPass() {
+  var p = document.getElementById('passIn').value.trim();
+  var err = document.getElementById('passErr');
+  if (p.length < 4) { err.textContent = '4文字以上にしてください'; return; }
+  document.getElementById('passBtn').disabled = true;
+  put(KEY.pass, p);
+  server(PASS_MODE === 'new' ? 'setPass' : 'getData', [p], onData, function (e) {
+    document.getElementById('passBtn').disabled = false;
+    err.textContent = e && e.message || String(e);
+  });
+}
+
+/* ---------- 画面 ---------- */
+var ICONS = {
+  home: '<path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/>',
+  add: '<circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/>',
+  graph: '<path d="M3 20h18"/><path d="M4 16l5-5 4 3 7-8"/>',
+  list: '<path d="M9 6h11M9 12h11M9 18h11"/><path d="M4 6h1M4 12h1M4 18h1"/>'
+};
+var TAB_LABEL = { home: 'ホーム', add: '記録する', graph: 'グラフ', list: '一覧' };
+
+function render() {
+  if (!D) return;
+  var nav = document.getElementById('tabs');
+  nav.hidden = false;
+  nav.firstChild.innerHTML = ['home', 'add', 'graph', 'list'].map(function (t) {
+    return '<button type="button" class="' + t + (TAB === t ? ' on' : '') + '" onclick="go(\'' + t + '\')"><svg viewBox="0 0 24 24">' +
+      ICONS[t] + '</svg>' + (t === 'add' && F && F.id ? '直す' : TAB_LABEL[t]) + '</button>';
+  }).join('');
+  document.getElementById('mockBadge').hidden = !MOCK;
+  var v = document.getElementById('view');
+  if (TAB === 'add') v.innerHTML = renderForm();
+  else if (TAB === 'graph') { v.innerHTML = evSwitch() + renderGraph(); drawChart(); }
+  else if (TAB === 'list') v.innerHTML = evSwitch() + renderList();
+  else v.innerHTML = evSwitch() + renderHome();
+}
+function go(t) {
+  if (t === 'add' && TAB !== 'add' && !F) newForm();
+  TAB = t;
+  TIP = null;
+  render();
+  window.scrollTo(0, 0);
+}
+function evSwitch() {
+  return '<div class="seg evswitch">' + EVENTS.map(function (ev) {
+    return '<button type="button" class="' + (EV === ev ? 'on' : '') + '" onclick="setEv(\'' + ev + '\')">' + ev + '</button>';
+  }).join('') + '</div>';
+}
+function setEv(ev) { EV = ev; put(KEY.event, ev); TIP = null; render(); }
+
+/* ---------- ホーム ---------- */
+function renderHome() {
+  var s = stats(EV);
+  var u = unit(EV);
+  var h = '';
+  if (s.pb) {
+    h += '<div class="card hero"><div class="label">自己ベスト（公認）</div>' +
+      '<div class="big num">' + fmtMark(EV, s.pb.a.mark) + '<small>' + u + '</small></div>' +
+      '<div class="where">' + dateText(s.pb.e.date, true) + '　' + esc(s.pb.e.meet) + (s.pb.a.wind !== null ? '（風 ' + fmtWind(s.pb.a.wind) + '）' : '') + '</div></div>';
+  } else {
+    h += '<div class="card empty">まだ大会・記録会の' + EV + 'の記録がありません。<br>下の「記録する」から入れてください。</div>';
+  }
+  var tile = function (label, x, note) {
+    return '<div class="tile"><div class="label">' + label + '</div>' +
+      (x ? '<div class="val num">' + fmtMark(EV, x.a.mark) + '<small>' + u + '</small></div><div class="note">' + (note || dateText(x.e.date) + ' ' + esc(x.e.meet)) + '</div>'
+         : '<div class="val muted">—</div><div class="note">' + (note || 'まだありません') + '</div>') + '</div>';
+  };
+  var grow = '';
+  if (s.sb && s.lb) {
+    var diff = isJump(EV) ? Math.round((s.sb.a.mark - s.lb.a.mark) * 100) : Math.round((s.lb.a.mark - s.sb.a.mark) * 100) / 100;
+    if (diff > 0) grow = '<span class="up">去年より ' + (isJump(EV) ? diff + 'cm' : diff.toFixed(2) + '秒') + ' 伸びた</span>';
+  }
+  h += '<div class="tiles">' +
+    tile('今季ベスト（' + thisYear() + '年）', s.sb, s.sb ? grow || null : null) +
+    tile('去年のベスト', s.lb) +
+    tile('練習のベスト', s.prac) +
+    (s.fouls ? '<div class="tile"><div class="label">今季のファウル率</div><div class="val num">' +
+      (s.fouls.n ? Math.round(s.fouls.f / s.fouls.n * 100) + '<small>%</small>' : '—') + '</div><div class="note">' +
+      (s.fouls.n ? s.fouls.n + '本中 ' + s.fouls.f + '本' : '大会の記録がありません') + '</div></div>'
+      : '<div class="tile"><div class="label">今季の出場</div><div class="val num">' + s.count + '<small>回</small></div><div class="note">大会・記録会</div></div>') +
+    '</div>';
+  if (s.windy && (!s.pb || better(EV, s.windy.a.mark, s.pb.a.mark))) {
+    h += '<div class="card"><span class="badge">追い風参考</span> <b class="num">' + fmtMark(EV, s.windy.a.mark) + u + '</b>（風 ' + fmtWind(s.windy.a.wind) +
+      '）<div class="muted">' + dateText(s.windy.e.date, true) + ' ' + esc(s.windy.e.meet) + '。追い風が2.0mを超えると公認記録にはなりませんが、力はついています</div></div>';
+  }
+  h += '<h2>目標</h2><div class="card">' + renderGoals(s) + '</div>';
+  var recent = entriesOf(EV).slice(0, 3);
+  h += '<h2>最近の記録</h2><div class="card">' + (recent.length ? recent.map(entryCard).join('') : '<div class="empty">まだありません</div>') + '</div>';
+  return h;
+}
+function renderGoals(s) {
+  var pb = s.pb ? s.pb.a.mark : null;
+  var goals = D.goals.filter(function (g) { return g.event === EV; })
+    .sort(function (a, b) { return better(EV, a.mark, b.mark) ? 1 : -1; }); // 手前の目標から
+  var h = goals.map(function (g) {
+    var done = pb !== null && !better(EV, g.mark, pb);
+    // 進み具合のバー：目標の8割（100mは目標の1.2倍）から目標までを0〜100%にする
+    var base = isJump(EV) ? g.mark * 0.8 : g.mark * 1.2;
+    var pct = pb === null ? 0 : Math.max(0, Math.min(100, Math.round((pb - base) / (g.mark - base) * 100)));
+    return '<div class="goal' + (done ? ' done' : '') + '"><div class="name"><b>' + esc(g.name) + '</b><span class="muted num">' + fmtMark(EV, g.mark) + unit(EV) + '</span>' +
+      '<div class="gbar"><i style="width:' + (done ? 100 : pct) + '%"></i></div></div>' +
+      '<div class="rest num">' + (done ? '達成！' : esc(restText(EV, g.mark, pb)) || '—') +
+      '<small><button class="linkbtn" style="font-size:11px;color:var(--muted)" onclick="delGoal(\'' + esc(g.id) + '\')">消す</button></small></div></div>';
+  }).join('');
+  if (!goals.length) h = '<div class="muted">「県大会の標準記録」「自分の目標」などを入れると、あと何' + (isJump(EV) ? 'cm' : '秒') + 'かが出ます</div>';
+  h += '<div class="goalform"><input class="in" id="gName" placeholder="目標の名前（例：県大会標準）">' +
+    '<input class="in num" id="gMark" inputmode="decimal" placeholder="' + (isJump(EV) ? '5.00' : '13.50') + '">' +
+    '<button class="btn sub small" onclick="addGoal()">追加</button></div><div class="err" id="gErr"></div>';
+  return h;
+}
+function addGoal() {
+  var name = document.getElementById('gName').value.trim();
+  var mark = normMark(EV, document.getElementById('gMark').value);
+  var err = document.getElementById('gErr');
+  var r = MARK_RANGE[EV];
+  if (!name) { err.textContent = '目標の名前を入れてください'; return; }
+  if (!(+mark >= r[0] && +mark <= r[1])) { err.textContent = '記録の数字を確かめてください'; return; }
+  server('saveGoal', [get(KEY.pass), { event: EV, name: name, mark: +mark }], function (d) { onData(d); toast('目標を追加しました'); },
+    function (e) { err.textContent = e.message || String(e); });
+}
+function delGoal(id) {
+  if (!confirm('この目標を消しますか？')) return;
+  server('deleteGoal', [get(KEY.pass), id], onData, function (e) { toast(e.message || String(e)); });
+}
+
+/* ---------- 出場カード ---------- */
+function entryCard(e) {
+  var ev = e.event;
+  var pb = stats(ev).pb;
+  var marks = e.attempts.filter(hasMark);
+  var best = marks.length ? marks.reduce(function (b, a) { return better(ev, a.mark, b.mark) ? a : b; }) : null;
+  var isPb = pb && pb.e === e;
+  var chips = e.attempts.map(function (a) {
+    var label = isJump(ev) ? '' : '<small>' + esc(a.no) + '</small> ';
+    if (a.result) return '<span class="chip' + (a.result === 'F' ? ' foul' : '') + '">' + label + (a.result === 'F' ? '×F' : 'パス') + '</span>';
+    return '<span class="chip num' + (a === best ? ' top' : '') + '">' + label + fmtMark(ev, a.mark) +
+      (a.wind !== null ? '<small>' + fmtWind(a.wind) + (aided(a) ? ' 追参' : '') + '</small>' : '') + '</span>';
+  }).join('');
+  return '<div class="entry"><div class="head"><span class="date num">' + dateText(e.date, yearOf(e.date) !== thisYear()) + '</span>' +
+    '<span class="meet">' + esc(e.meet) + '</span><span class="best num">' + (best ? fmtMark(ev, best.mark) + '<small>' + unit(ev) + '</small>' : '—') + '</span></div>' +
+    '<div class="foot"><span>' + (e.kind !== '大会' ? '<span class="badge">' + esc(e.kind) + '</span> ' : '') +
+    (isPb ? '<span class="badge pb">自己ベスト</span> ' : '') + (e.rank ? '<span class="muted">' + esc(e.rank) + (/^\d+$/.test(e.rank) ? '位' : '') + '</span>' : '') + '</span>' +
+    '<button class="linkbtn" onclick="editEntry(\'' + esc(e.id) + '\')">直す</button></div>' +
+    '<div class="chips">' + chips + '</div>' + (e.memo ? '<div class="memo">' + esc(e.memo) + '</div>' : '') + '</div>';
+}
+
+/* ---------- 一覧 ---------- */
+function renderList() {
+  var list = entriesOf(EV);
+  if (!list.length) return '<div class="card empty">まだ' + EV + 'の記録がありません</div>';
+  var h = '', year = null;
+  list.forEach(function (e) {
+    var y = yearOf(e.date);
+    if (y !== year) { if (year !== null) h += '</div>'; h += '<h2>' + y + '年</h2><div class="card">'; year = y; }
+    h += entryCard(e);
+  });
+  return h + '</div>';
+}
+
+/* ---------- 入力 ---------- */
+function today() {
+  var d = new Date();
+  return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2);
+}
+function blankAtt(ev, i, kind) {
+  return { no: isJump(ev) ? String(i + 1) : (kind === '練習' ? (i + 1) + '本目' : ['予選', '決勝'][i] || (i + 1) + '本目'), mark: '', result: '', wind: '' };
+}
+function newForm() {
+  F = { id: '', date: today(), meet: '', kind: '大会', event: EV, rank: '', memo: '', attempts: [] };
+  for (var i = 0; i < (isJump(EV) ? 3 : 1); i++) F.attempts.push(blankAtt(EV, i, F.kind));
+  FERR = '';
+}
+function editEntry(id) {
+  var e = D.entries.filter(function (x) { return x.id === id; })[0];
+  if (!e) return;
+  F = JSON.parse(JSON.stringify(e));
+  F.attempts.forEach(function (a) {
+    a.mark = a.mark === null ? '' : fmtMark(e.event, a.mark);
+    a.wind = a.wind === null ? '' : String(a.wind);
+  });
+  FERR = '';
+  TAB = 'add';
+  render();
+  window.scrollTo(0, 0);
+}
+function renderForm() {
+  var ev = F.event, jump = isJump(ev);
+  var meets = {};
+  D.entries.forEach(function (e) { if (e.kind !== '練習') meets[e.meet] = 1; });
+  var seg = function (name, list, cur) {
+    return '<div class="seg">' + list.map(function (x) {
+      return '<button type="button" class="' + (cur === x ? 'on' : '') + '" onclick="setF(\'' + name + '\',\'' + x + '\')">' + x + '</button>';
+    }).join('') + '</div>';
+  };
+  var h = '<div class="card">' + (F.id ? '<b>記録を直す</b>' : '<b>記録する</b>') +
+    '<div class="field"><label>種目</label>' + seg('event', EVENTS, ev) + '</div>' +
+    '<div class="field"><label>区分</label>' + seg('kind', KINDS, F.kind) + '</div>' +
+    '<div class="field"><label>日付</label><input class="in" type="date" value="' + esc(F.date) + '" oninput="F.date=this.value"></div>' +
+    (F.kind === '練習' ? '' : '<div class="field"><label>大会名</label><input class="in" list="meetList" value="' + esc(F.meet) +
+      '" oninput="F.meet=this.value" placeholder="例：市民陸上競技大会"><datalist id="meetList">' +
+      Object.keys(meets).map(function (m) { return '<option value="' + esc(m) + '">'; }).join('') + '</datalist></div>') +
+    '</div>';
+  h += '<div class="card"><b>' + (jump ? '試技' : 'レース') + '</b>' +
+    '<div class="atthead' + (jump ? '' : ' run') + '"><span></span><span style="text-align:center">記録（' + unit(ev) + '）</span>' + (jump ? '<span></span>' : '') +
+    '<span style="text-align:center">風（m/秒）</span></div>';
+  F.attempts.forEach(function (a, i) {
+    var marked = !!a.result;
+    h += '<div class="att' + (jump ? '' : ' run') + '">' +
+      (jump ? '<span class="no">' + esc(a.no || i + 1) + '本目</span>'
+            : '<select class="in round" onchange="F.attempts[' + i + '].no=this.value">' + roundOpts(a.no) + '</select>') +
+      '<input class="in num" inputmode="decimal" placeholder="' + (marked ? '' : i ? '' : jump ? '4.85' : '13.62') + '" value="' + esc(a.mark) + '"' + (marked ? ' disabled' : '') +
+      ' oninput="F.attempts[' + i + '].mark=this.value" onblur="fixMark(' + i + ',this)">' +
+      (jump ? '<div class="rbtn"><button type="button" class="' + (a.result === 'F' ? 'on' : '') + '" onclick="setRes(' + i + ',\'F\')">F</button>' +
+              '<button type="button" class="pass' + (a.result === 'パス' ? ' on pass' : '') + '" onclick="setRes(' + i + ',\'パス\')">パス</button></div>' : '') +
+      '<div class="wind"><button type="button" onclick="flipWind(' + i + ')" aria-label="追い風・向かい風の切り替え">±</button>' +
+      '<input class="num" inputmode="decimal" placeholder="' + (marked ? '' : '風') + '" value="' + esc(a.wind) + '"' + (marked ? ' disabled' : '') +
+      ' id="wind' + i + '" oninput="F.attempts[' + i + '].wind=this.value" onblur="fixWind(' + i + ',this)"></div></div>';
+  });
+  h += '<div class="rowbtns">' + (F.attempts.length < MAX_ATT ? '<button class="btn sub small" onclick="addAtt()">＋ ' + (jump ? '1本' : '1レース') + '追加</button>' : '') +
+    (F.attempts.length > 1 ? '<button class="btn sub small" onclick="popAtt()">最後の行を消す</button>' : '') + '</div>' +
+    '<div class="help">「512」と打つと ' + (jump ? '5.12' : '—') + '、' + (jump ? '' : '「1362」と打つと 13.62、') + '風の「±」で向かい風（マイナス）に切り替え。' +
+    (F.kind === '練習' ? '練習で風が分からなければ空欄でOK' : '追い風が2.0mを超えると「追い風参考」として自己ベストから外します') + '</div></div>';
+  h += '<div class="card">' +
+    (F.kind === '練習' ? '' : '<div class="field" style="margin-top:0"><label>順位（なくてもOK）</label><input class="in" value="' + esc(F.rank) + '" oninput="F.rank=this.value" placeholder="例：3、予選落ち"></div>') +
+    '<div class="field"' + (F.kind === '練習' ? ' style="margin-top:0"' : '') + '><label>メモ（調子・気づいたこと）</label><textarea class="in" oninput="F.memo=this.value" placeholder="例：踏切が合わなかった。助走を半足下げると良さそう">' + esc(F.memo) + '</textarea></div>' +
+    (FERR ? '<div class="err">' + esc(FERR) + '</div>' : '') +
+    '<button class="btn main" onclick="saveForm()"' + (SAVING ? ' disabled' : '') + '>' + (SAVING ? '保存中…' : '保存する') + '</button>' +
+    '<div class="rowbtns" style="justify-content:space-between">' +
+    (F.id ? '<button class="btn sub small" onclick="cancelEdit()">直すのをやめる</button><button class="btn danger small" onclick="delEntry()">この記録を消す</button>'
+          : '<button class="btn sub small" onclick="newForm();render()">入力を消す</button>') + '</div></div>';
+  return h;
+}
+function roundOpts(cur) {
+  var list = ROUNDS.indexOf(cur) < 0 && cur ? [cur].concat(ROUNDS) : ROUNDS;
+  return list.map(function (r) { return '<option' + (r === cur ? ' selected' : '') + '>' + esc(r) + '</option>'; }).join('');
+}
+function setF(name, v) {
+  if (name === 'event' && v !== F.event) { // 種目を変えたら試技を作り直す
+    F.event = v;
+    F.attempts = [];
+    for (var i = 0; i < (isJump(v) ? 3 : 1); i++) F.attempts.push(blankAtt(v, i, F.kind));
+  } else F[name] = v;
+  if (name === 'kind' && v === '練習' && !F.meet) F.meet = '練習';
+  if (name === 'kind' && v !== '練習' && F.meet === '練習') F.meet = '';
+  render();
+}
+function setRes(i, r) {
+  var a = F.attempts[i];
+  a.result = a.result === r ? '' : r;
+  if (a.result) { a.mark = ''; a.wind = ''; }
+  render();
+}
+function addAtt() { F.attempts.push(blankAtt(F.event, F.attempts.length, F.kind)); render(); }
+function popAtt() { F.attempts.pop(); render(); }
+function flipWind(i) {
+  var a = F.attempts[i];
+  var w = String(a.wind || '').trim();
+  a.wind = w.charAt(0) === '-' ? w.slice(1) : '-' + w.replace(/^\+/, '');
+  var el = document.getElementById('wind' + i);
+  el.value = a.wind;
+  el.focus();
+}
+function half(s) { return String(s || '').replace(/[０-９．－＋]/g, function (c) { return String.fromCharCode(c.charCodeAt(0) - 0xFEE0); }).trim(); }
+/** 「512」→5.12、「1362」→13.62、「134」→13.4、「5m12」→5.12 */
+function normMark(ev, s) {
+  s = half(s).replace(/[m秒"]/g, '.').replace(/[,、]/g, '.').replace(/\.$/, '');
+  if (!s) return '';
+  if (/^\d+$/.test(s)) {
+    if (isJump(ev) && s.length === 3) s = s[0] + '.' + s.slice(1);
+    if (!isJump(ev) && s.length === 3) s = s.slice(0, 2) + '.' + s[2];
+    if (!isJump(ev) && s.length === 4) s = s.slice(0, 2) + '.' + s.slice(2);
+  }
+  return isNaN(+s) ? s : String(+s);
+}
+/** 「12」→1.2（風は10m/秒を超えないので） */
+function normWind(s) {
+  s = half(s).replace(/[,、]/g, '.').replace(/^\+/, '');
+  if (!s || s === '-') return '';
+  var neg = s.charAt(0) === '-';
+  var body = neg ? s.slice(1) : s;
+  if (/^\d+$/.test(body) && +body >= 10) body = String(+body / 10);
+  return isNaN(+body) ? s : (neg && +body ? '-' : '') + (+body).toFixed(1);
+}
+function fixMark(i, el) {
+  var v = normMark(F.event, el.value);
+  F.attempts[i].mark = v;
+  el.value = v && !isNaN(+v) ? fmtMark(F.event, +v) : v;
+}
+function fixWind(i, el) { F.attempts[i].wind = normWind(el.value); el.value = F.attempts[i].wind; }
+
+function formToEntry() {
+  var ev = F.event, r = MARK_RANGE[ev];
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(F.date)) throw new Error('日付を入れてください');
+  if (F.kind !== '練習' && !String(F.meet).trim()) throw new Error('大会名を入れてください');
+  var atts = F.attempts.map(function (a, i) {
+    var mark = normMark(ev, a.mark), wind = normWind(a.wind);
+    if (!a.result && mark !== '' && !(+mark >= r[0] && +mark <= r[1])) throw new Error((isJump(ev) ? (i + 1) + '本目' : a.no) + 'の記録「' + a.mark + '」を確かめてください');
+    if (wind !== '' && isNaN(+wind)) throw new Error('風「' + a.wind + '」を確かめてください');
+    return { no: a.no, mark: a.result || mark === '' ? null : +mark, result: a.result, wind: a.result || wind === '' ? null : +wind };
+  }).filter(function (a) { return a.mark !== null || a.result; });
+  if (!atts.length) throw new Error('記録を1つ以上入れてください');
+  return { id: F.id, date: F.date, meet: F.kind === '練習' ? (String(F.meet).trim() || '練習') : String(F.meet).trim(), kind: F.kind, event: ev,
+           rank: F.kind === '練習' ? '' : String(F.rank).trim(), memo: String(F.memo).trim(), attempts: atts };
+}
+function saveForm() {
+  if (SAVING) return;
+  var entry;
+  try { entry = formToEntry(); } catch (e) { FERR = e.message; render(); return; }
+  var ev = entry.event;
+  var before = stats(ev).pb;
+  SAVING = true; FERR = ''; render();
+  server('saveEntry', [get(KEY.pass), entry], function (d) {
+    SAVING = false;
+    var editing = !!F.id;
+    F = null;
+    EV = ev; put(KEY.event, ev);
+    TAB = 'home';
+    onData(d);
+    var after = stats(ev).pb;
+    if (after && (!before || better(ev, after.a.mark, before.a.mark))) toast('🎉 自己ベスト更新！ ' + fmtMark(ev, after.a.mark) + unit(ev), 'pb');
+    else toast(editing ? '直しました' : '保存しました');
+    window.scrollTo(0, 0);
+  }, function (e) {
+    SAVING = false;
+    FERR = '保存できませんでした：' + (e.message || e) + '（電波のよいところでもう一度「保存する」を押してください）';
+    render();
+  });
+}
+function cancelEdit() { F = null; TAB = 'list'; render(); }
+function delEntry() {
+  if (!confirm('この記録（' + dateText(F.date, true) + ' ' + F.meet + '）を消しますか？')) return;
+  server('deleteEntry', [get(KEY.pass), F.id], function (d) { F = null; TAB = 'list'; onData(d); toast('消しました'); },
+    function (e) { FERR = e.message || String(e); render(); });
+}
+
+/* ---------- グラフ ---------- */
+function renderGraph() {
+  var h = '<div class="seg rangesel">' + [['all', '全部'], ['year', '今年'], ['12m', 'この1年']].map(function (r) {
+    return '<button type="button" class="' + (RANGE === r[0] ? 'on' : '') + '" onclick="setRange(\'' + r[0] + '\')">' + r[1] + '</button>';
+  }).join('') + '</div>';
+  h += '<div class="card"><b>' + EV + 'の記録の移り変わり</b><div class="muted">' + (isJump(EV) ? '上ほど遠くへ跳んでいます' : '上ほど速く走れています（タイムが短い）') +
+    '。点をタップすると詳しく出ます</div><div class="chartwrap" id="chart"></div><div class="legend" id="legend"></div></div>';
+  return h;
+}
+function setRange(r) { RANGE = r; put(KEY.range, r); TIP = null; render(); }
+function dayMs(d) { var p = String(d).split('-'); return Date.UTC(+p[0], +p[1] - 1, +p[2]); }
+function inRange(e) {
+  if (RANGE === 'year') return yearOf(e.date) === thisYear();
+  if (RANGE === '12m') return dayMs(e.date) >= dayMs(today()) - 365 * 86400000;
+  return true;
+}
+/** 点を作る。大会・記録会はその日の公認ベスト（線でつなぐ）、追い風参考、練習のベスト、そのほかの試技 */
+function chartPoints(ev) {
+  var pts = [];
+  entriesOf(ev).filter(inRange).forEach(function (e) {
+    var marks = e.attempts.filter(hasMark);
+    if (!marks.length) return;
+    var pick = function (fn) {
+      var b = null;
+      marks.forEach(function (a) { if (fn(a) && (!b || better(ev, a.mark, b.mark))) b = a; });
+      return b;
+    };
+    var t = dayMs(e.date), used = [];
+    var add = function (a, cls) { if (a) { pts.push({ t: t, v: a.mark, cls: cls, e: e, a: a }); used.push(a); } };
+    if (e.kind === '練習') add(pick(function () { return true; }), 'prac');
+    else {
+      var lg = pick(function (a) { return !aided(a); });
+      var wd = pick(aided);
+      add(lg, 'legal');
+      if (wd && (!lg || better(ev, wd.mark, lg.mark))) add(wd, 'aided');
+    }
+    marks.forEach(function (a) { if (used.indexOf(a) < 0) pts.push({ t: t, v: a.mark, cls: 'other', e: e, a: a }); });
+  });
+  return pts;
+}
+function niceStep(span) {
+  var steps = [0.05, 0.1, 0.2, 0.25, 0.5, 1, 2];
+  for (var i = 0; i < steps.length; i++) if (span / steps[i] <= 6) return steps[i];
+  return 5;
+}
+var CHART = null; // 描いた点の画面上の位置（タップの判定用）
+function drawChart() {
+  var box = document.getElementById('chart');
+  if (!box) return;
+  var ev = EV, jump = isJump(ev);
+  var pts = chartPoints(ev);
+  var goals = D.goals.filter(function (g) { return g.event === ev; });
+  if (!pts.length) { box.innerHTML = '<div class="empty">この期間の記録がありません</div>'; document.getElementById('legend').innerHTML = ''; CHART = null; return; }
+  var W = Math.max(280, Math.round(box.getBoundingClientRect().width)), H = 280;
+  var L = 40, R = 10, T = 14, B = 26;
+  var tMin = Math.min.apply(null, pts.map(function (p) { return p.t; }));
+  var tMax = Math.max.apply(null, pts.map(function (p) { return p.t; }));
+  var padT = Math.max(10 * 86400000, (tMax - tMin) * 0.04);
+  tMin -= padT; tMax += padT;
+  var vals = pts.map(function (p) { return p.v; });
+  var vMin = Math.min.apply(null, vals), vMax = Math.max.apply(null, vals);
+  // 目標は、記録から大きく離れていなければ枠に入れる
+  goals.forEach(function (g) { if (Math.abs(g.mark - (jump ? vMax : vMin)) <= (jump ? 1.0 : 2.0)) { vMin = Math.min(vMin, g.mark); vMax = Math.max(vMax, g.mark); } });
+  var step = niceStep(Math.max(vMax - vMin, jump ? 0.3 : 0.5));
+  vMin = Math.floor(vMin / step - 0.3) * step;
+  vMax = Math.ceil(vMax / step + 0.3) * step;
+  var x = function (t) { return L + (t - tMin) / (tMax - tMin) * (W - L - R); };
+  var y = function (v) { var r = (v - vMin) / (vMax - vMin); return T + (jump ? 1 - r : r) * (H - T - B); };
+  var s = '';
+  for (var v = vMin; v <= vMax + 1e-9; v += step) { // 横線と目盛り
+    var yy = y(v).toFixed(1);
+    s += '<line x1="' + L + '" x2="' + (W - R) + '" y1="' + yy + '" y2="' + yy + '" stroke="var(--line)" stroke-width="1"/>' +
+      '<text x="' + (L - 6) + '" y="' + (+yy + 4) + '" text-anchor="end">' + (jump ? v.toFixed(step < 0.1 ? 2 : 1) : v.toFixed(step < 0.1 ? 2 : 1)) + '</text>';
+  }
+  // 月の目盛り（多すぎるときは間引く）
+  var d0 = new Date(tMin), months = [];
+  for (var m = new Date(Date.UTC(d0.getUTCFullYear(), d0.getUTCMonth() + 1, 1)); m.getTime() <= tMax; m = new Date(Date.UTC(m.getUTCFullYear(), m.getUTCMonth() + 1, 1))) months.push(m);
+  var every = [1, 2, 3, 4, 6, 12].filter(function (k) { return months.length / k <= Math.max(3, Math.floor((W - L) / 56)); })[0] || 12;
+  var shownYear = null;
+  months.forEach(function (m) {
+    if ((m.getUTCMonth()) % every) return;
+    var xx = x(m.getTime()).toFixed(1), yr = m.getUTCFullYear();
+    s += '<line x1="' + xx + '" x2="' + xx + '" y1="' + (H - B) + '" y2="' + (H - B + 4) + '" stroke="var(--axis)"/>' +
+      '<text x="' + xx + '" y="' + (H - 8) + '" text-anchor="middle">' + (shownYear !== yr ? "'" + String(yr).slice(2) + '/' : '') + (m.getUTCMonth() + 1) + '月</text>';
+    shownYear = yr;
+  });
+  if (!months.length) { // 1か月に満たない期間は、記録の日付を目盛りにする
+    pts.map(function (p) { return p.t; }).filter(function (t, i, a) { return a.indexOf(t) === i; }).forEach(function (t) {
+      s += '<text x="' + x(t).toFixed(1) + '" y="' + (H - 8) + '" text-anchor="middle">' + dateText(new Date(t).toISOString().slice(0, 10)) + '</text>';
+    });
+  }
+  s += '<line x1="' + L + '" x2="' + (W - R) + '" y1="' + (H - B) + '" y2="' + (H - B) + '" stroke="var(--axis)"/>';
+  goals.forEach(function (g) { // 目標の線（枠の中にあるものだけ）
+    if (g.mark < vMin || g.mark > vMax) return;
+    var yy = y(g.mark).toFixed(1);
+    s += '<line x1="' + L + '" x2="' + (W - R) + '" y1="' + yy + '" y2="' + yy + '" stroke="var(--sub)" stroke-width="1.5" opacity=".7"/>' +
+      '<text class="glabel" x="' + (W - R - 2) + '" y="' + (+yy - 5) + '" text-anchor="end">' + esc(g.name) + ' ' + fmtMark(ev, g.mark) + '</text>';
+  });
+  var order = { other: 0, prac: 1, legal: 2, aided: 3 };
+  pts.sort(function (a, b) { return order[a.cls] - order[b.cls] || a.t - b.t; });
+  pts.forEach(function (p) { p.x = x(p.t); p.y = y(p.v); });
+  var line = pts.filter(function (p) { return p.cls === 'legal'; }).sort(function (a, b) { return a.t - b.t; });
+  if (line.length > 1) s += '<polyline fill="none" stroke="var(--s1)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" points="' +
+    line.map(function (p) { return p.x.toFixed(1) + ',' + p.y.toFixed(1); }).join(' ') + '"/>';
+  var color = { other: 'var(--other)', prac: 'var(--s3)', legal: 'var(--s1)', aided: 'var(--s2)' };
+  pts.forEach(function (p) {
+    var r = p.cls === 'other' ? 3 : 5;
+    s += '<circle cx="' + p.x.toFixed(1) + '" cy="' + p.y.toFixed(1) + '" r="' + r + '" fill="' + color[p.cls] + '" stroke="var(--card)" stroke-width="2"/>';
+  });
+  if (TIP) {
+    s += '<line x1="' + TIP.x.toFixed(1) + '" x2="' + TIP.x.toFixed(1) + '" y1="' + T + '" y2="' + (H - B) + '" stroke="var(--axis)"/>' +
+      '<circle cx="' + TIP.x.toFixed(1) + '" cy="' + TIP.y.toFixed(1) + '" r="7" fill="' + color[TIP.cls] + '" stroke="var(--card)" stroke-width="2"/>';
+  }
+  CHART = { pts: pts, W: W, H: H };
+  box.innerHTML = '<svg viewBox="0 0 ' + W + ' ' + H + '" width="' + W + '" height="' + H + '" role="img" aria-label="' + ev + 'の記録の移り変わり">' + s + '</svg>' + tipHtml();
+  box.onclick = onChartTap;
+  var has = {};
+  pts.forEach(function (p) { has[p.cls] = 1; });
+  var leg = [];
+  if (has.legal) leg.push('<span><i class="key line" style="background:var(--s1)"></i>大会・記録会（その日のベスト）</span>');
+  if (has.aided) leg.push('<span><i class="key" style="background:var(--s2)"></i>追い風参考</span>');
+  if (has.prac) leg.push('<span><i class="key" style="background:var(--s3)"></i>練習のベスト</span>');
+  if (has.other) leg.push('<span><i class="key" style="background:var(--other);width:7px;height:7px"></i>そのほかの試技</span>');
+  if (goals.length) leg.push('<span><i class="key line" style="background:var(--sub)"></i>目標</span>');
+  document.getElementById('legend').innerHTML = leg.join('');
+}
+function tipHtml() {
+  if (!TIP) return '';
+  var p = TIP, ev = EV;
+  var left = Math.min(Math.max(p.x - 90, 0), CHART.W - 190);
+  var top = p.y > CHART.H / 2 ? p.y - 76 : p.y + 14;
+  var kind = { legal: '', aided: '・追い風参考', prac: '', other: '' }[p.cls];
+  return '<div class="tip" style="left:' + left + 'px;top:' + top + 'px"><b class="num">' + fmtMark(ev, p.v) + unit(ev) + '</b>' +
+    (p.a.wind !== null ? ' <span class="muted">風 ' + fmtWind(p.a.wind) + kind + '</span>' : '') +
+    '<br>' + dateText(p.e.date, true) + ' ' + esc(p.e.meet) + (isJump(ev) ? ' <span class="muted">' + esc(p.a.no) + '本目</span>' : ' <span class="muted">' + esc(p.a.no) + '</span>') + '</div>';
+}
+function onChartTap(ev) {
+  if (!CHART) return;
+  var svg = this.querySelector('svg');
+  var rc = svg.getBoundingClientRect();
+  var px = (ev.clientX - rc.left) * CHART.W / rc.width, py = (ev.clientY - rc.top) * CHART.H / rc.height;
+  var best = null, bd = 1e9;
+  CHART.pts.forEach(function (p) {
+    var d = Math.pow(p.x - px, 2) + Math.pow(p.y - py, 2) * 0.6 + (p.cls === 'other' ? 60 : 0); // 色付きの点を選びやすく
+    if (d < bd) { bd = d; best = p; }
+  });
+  TIP = best && bd < 40 * 40 ? best : null;
+  drawChart();
+}
+window.addEventListener('resize', function () { if (TAB === 'graph') drawChart(); });
+
+/* ---------- お知らせ ---------- */
+var toastTimer = null;
+function toast(msg, cls) {
+  var t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast' + (cls ? ' ' + cls : '');
+  t.hidden = false;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(function () { t.hidden = true; }, cls === 'pb' ? 4000 : 2200);
+}
+
+/* ---------- 見本データ（API_URL が空のとき・ファイルを直接開いたとき。このスマホの中だけで動く） ---------- */
+function mockDb() {
+  var db = null;
+  try { db = JSON.parse(get(KEY.mock) || 'null'); } catch (e) { db = null; }
+  if (!db) db = mockSeed();
+  return db;
+}
+function mockSave(db) { put(KEY.mock, JSON.stringify(db)); }
+function mockSeed() {
+  var y = thisYear(), ly = y - 1;
+  var J = function (id, date, meet, kind, list, rank, memo) {
+    return { id: id, date: date, meet: meet, kind: kind, event: '走幅跳', rank: rank || '', memo: memo || '',
+      attempts: list.map(function (x, i) { return { no: String(i + 1), mark: typeof x[0] === 'number' ? x[0] : null, result: typeof x[0] === 'string' ? x[0] : '', wind: x[1] === undefined ? null : x[1] }; }) };
+  };
+  var S = function (id, date, meet, kind, list, rank) {
+    return { id: id, date: date, meet: meet, kind: kind, event: '100m', rank: rank || '', memo: '',
+      attempts: list.map(function (x) { return { no: x[0], mark: x[1], result: '', wind: x[2] === undefined ? null : x[2] }; }) };
+  };
+  return {
+    pass: '', title: '陸上記録ノート',
+    goals: [{ id: 'G1', event: '走幅跳', name: '自分の目標', mark: 5.00, memo: '' }, { id: 'G2', event: '100m', name: '自分の目標', mark: 13.50, memo: '' }],
+    entries: [
+      J('E01', ly + '-05-03', '春季記録会', '記録会', [[4.12, 0.8], ['F'], [4.25, 1.1]]),
+      J('E02', ly + '-06-08', '市中学総体', '大会', [[4.30, -0.2], [4.21, 0.4], ['F'], [4.38, 1.0], ['パス'], [4.33, 0.6]], '5'),
+      J('E03', ly + '-07-20', '練習', '練習', [[4.45], [4.40], [4.52]]),
+      J('E04', ly + '-09-14', '秋季大会', '大会', [['F'], [4.48, 1.5], [4.56, 0.9]], '4'),
+      J('E05', y + '-04-19', '春季記録会', '記録会', [[4.61, 0.5], [4.70, 1.2], ['F']]),
+      J('E06', y + '-05-24', '市中学総体', '大会', [[4.72, 1.8], ['F'], [4.88, 2.6], [4.80, 1.4], ['F'], [4.76, 0.2]], '3', '4本目まで踏切が合っていた'),
+      J('E07', y + '-06-15', '練習', '練習', [[4.85], [4.90]]),
+      J('E08', y + '-07-12', '地区大会', '大会', [[4.79, 0.6], [4.83, -0.4], ['F']], '6'),
+      J('E09', y + '-09-27', '秋季大会', '大会', [['F'], [4.86, 1.3], [4.92, 1.7]], '2', '助走の最後で減速しないよう意識'),
+      S('E10', ly + '-05-03', '春季記録会', '記録会', [['タイムレース', 14.32, 0.5]]),
+      S('E11', ly + '-09-14', '秋季大会', '大会', [['予選', 14.05, -0.8]]),
+      S('E12', y + '-04-19', '春季記録会', '記録会', [['タイムレース', 13.86, 1.2]]),
+      S('E13', y + '-07-12', '地区大会', '大会', [['予選', 13.72, 0.4], ['決勝', 13.65, 1.0]], '4')
+    ]
+  };
+}
+function mockServer(fn, args) {
+  var db = mockDb();
+  var out = function () { return { title: db.title, entries: JSON.parse(JSON.stringify(db.entries)), goals: JSON.parse(JSON.stringify(db.goals)) }; };
+  if (fn === 'getData') return !db.pass ? { needPass: 'new' } : args[0] !== db.pass ? { needPass: 'wrong' } : out();
+  if (fn === 'setPass') { if (db.pass) throw new Error('合言葉はもう決まっています'); db.pass = args[0]; mockSave(db); return out(); }
+  if (args[0] !== db.pass) throw new Error('合言葉が違います');
+  var x = args[1];
+  if (fn === 'saveEntry') {
+    if (!x.id) x.id = 'E' + Date.now().toString(36);
+    x.attempts.forEach(function (a) { if (a.no === undefined) a.no = ''; });
+    db.entries = db.entries.filter(function (e) { return e.id !== x.id; }).concat([x]);
+  }
+  if (fn === 'deleteEntry') db.entries = db.entries.filter(function (e) { return e.id !== x; });
+  if (fn === 'saveGoal') { if (!x.id) x.id = 'G' + Date.now().toString(36); db.goals = db.goals.filter(function (g) { return g.id !== x.id; }).concat([x]); }
+  if (fn === 'deleteGoal') db.goals = db.goals.filter(function (g) { return g.id !== x; });
+  mockSave(db);
+  return out();
+}
+
+if (MOCK && Q.get('mock') === 'reset') put(KEY.mock, null); // ?mock=reset で見本データを最初の状態に戻す
+load();
+</script>
+</body>
+</html>
